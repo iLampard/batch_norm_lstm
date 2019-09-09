@@ -26,15 +26,15 @@ class RunnerPhase(StrEnum):
 
 class ModelRunner:
     def __init__(self,
-                 model_wrapper,
-                 checkpoint_path,
+                 model,
                  flags):
-        self.model_wrapper = model_wrapper
-        self.model_checkpoint_path = checkpoint_path
+        self.model_wrapper = ModelWrapper(model)
+        self.model_checkpoint_path = flags.save_dir
         self.lr = flags.learning_rate
         self.write_summary = flags.write_summary
         self.rnn_dim = flags.rnn_dim
         self.dropout = flags.dropour_rate
+        self.batch_size = flags.batch_size
 
         logging.get_absl_logger().addHandler(logging_base.StreamHandler(sys.path))
 
@@ -123,7 +123,7 @@ class ModelRunner:
         epoch_loss = []
         epoch_predictions = []
         epoch_labels = []
-        for input_x, label in dataset.get_batch_data():
+        for input_x, label in dataset.next_batch(self.batch_size):
             loss, prediction = self.model_wrapper.run_batch(input_x,
                                                             lr,
                                                             phase=phase)

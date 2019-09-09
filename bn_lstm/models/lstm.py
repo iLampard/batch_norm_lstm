@@ -6,29 +6,27 @@ from tensorflow.keras import layers
 
 class LSTM(layers.Layer):
     def __init__(self, hidden_dim, apply_bn=False):
-        """ Initialize the LSTM layer """
+        """
+            Initialize the LSTM layer
+            Build the network given the inputs_shape passed
+            Vanilla LSTM architecture -  (Hochreiter & Schmidhuber, 1997)
+            Batch norm architecture - https://arxiv.org/abs/1603.09025
+        """
         super(LSTM, self).__init__()
         self.hidden_dim = hidden_dim
         self.apply_bn = apply_bn
-
-    def build(self, inputs_shape):
-        """
-        Build the network given the inputs_shape passed
-        Vanilla LSTM architecture -  (Hochreiter & Schmidhuber, 1997)
-        Batch norm architecture - https://arxiv.org/abs/1603.09025
-        """
-
         self.layer_fc = layers.Dense(self.hidden_dim)
-
-        self.init_hidden_state = tf.zeros([None, self.hidden_dim])
-        self.init_cell_state = tf.zeros([None, self.hidden_dim])
-
-        return
 
     def call(self, inputs, **kwargs):
         """ Return the hidden states for all time steps """
+        # Get the batch size from inputs
+        self.batch_size = tf.shape(inputs)[0]
+
+        self.init_hidden_state = tf.zeros(dtype=tf.float32, shape=[self.batch_size, self.hidden_dim])
+        self.init_cell_state = tf.zeros(dtype=tf.float32, shape=[self.batch_size, self.hidden_dim])
+
         # (num_steps, batch_size, input_dim)
-        inputs_ = tf.transpose(input, perm=[1, 0, 2])
+        inputs_ = tf.transpose(inputs, perm=[1, 0, 2])
 
         # use scan to run over all time steps
         state_tuple = tf.scan(self.one_step,
@@ -77,13 +75,12 @@ class ClassificationModel:
         self.lstm_layer = LSTM(self.hidden_dim)
         self.prediction_layer = layers.Dense(self.num_class)
 
-        pred = self.forward(self.input_x)
+        self.pred, self.loss = self.forward(self.input_x)
 
-        self.optimizer = tf.train.AdamOptimizer(self.lr)
-        opt_op = self.optimizer.minimize(loss)
+        self.opt_op = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
 
     def forward(self, input_x):
-        """   """
+        """ Make predictions and compute loss  """
         # (batch_size, num_steps, hidden_dim)
         all_states = self.lstm_layer(input_x)
 
@@ -91,15 +88,32 @@ class ClassificationModel:
         last_state = all_states[:, -1, :]
 
         # (batch_size, num_class)
-        pred_logits = self.prediction_layer(last_state)
+        pred = tf.nn.softmax(self.prediction_layer(last_state))
 
-        loss = tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.label,
-                                                          logits=pred_logits)
+        loss = tf.reduce_mean(-tf.reduce_sum(self.label * tf.log(pred)))
 
-        return pred_logits, loss
+        return pred, loss
 
-    def train(self):
-        return
+    def train(self, sess, batch_data, lr):
+        """ Define the train process """
+        batch_x, batch_y = batch_data
+        feed_dict = {self.input_x: batch_x,
+                     self.label: batch_y,
+                     self.lr: lr,
+                     self.is_training: True}
 
-    def predict(self):
-        return
+        _, loss, prediction = sess.run([self.opt_op, self.loss, self.pred], feed_dict=feed_dict)
+
+        return loss, prediction
+
+    def predict(self, sess, batch_data, lr):
+        """ Define the prediction process """
+        batch_x, batch_y = batch_data
+        feed_dict = {self.input_x: batch_x,
+                     self.label: batch_y,
+                     self.lr: lr,
+                     self.is_training: False}
+
+        _, loss, prediction = sess.run([self.opt_op, self.loss, self.pred], feed_dict=feed_dict)
+
+        return loss, prediction

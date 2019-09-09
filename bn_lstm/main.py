@@ -9,6 +9,9 @@ sys.path.append(ROOT_PATH)
 
 from absl import app
 from absl import flags
+from tensorflow.examples.tutorials.mnist import input_data
+from bn_lstm.model_runner import ModelRunner
+from bn_lstm.models.lstm import ClassificationModel
 
 FLAGS = flags.FLAGS
 
@@ -23,7 +26,16 @@ flags.DEFINE_integer('rnn_dim', 32, 'Dimension of LSTM cell')
 flags.DEFINE_float('dropout', 0.0, 'Dropout rate of the model')
 flags.DEFINE_string('save_dir', 'logs', 'Root path to save logs and models')
 
+
 def main(argv):
+    dataset = input_data.read_data_sets("MNIST_data/", one_hot=True)
+    train_set, valid_set, test_set = dataset.train, dataset.validation, dataset.test
+
+    model = ClassificationModel(hidden_dim=FLAGS.rnn_dim, num_class=10)
+    model_runner = ModelRunner(model, FLAGS)
+
+    model_runner.train(train_set, valid_set, test_set, FLAGS.max_epoch)
+
     return
 
 
