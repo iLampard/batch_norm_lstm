@@ -19,6 +19,7 @@ FLAGS = flags.FLAGS
 flags.DEFINE_bool('write_summary', False, 'Whether to write summary of epoch in training using Tensorboard')
 flags.DEFINE_integer('max_epoch', 10, 'Max epoch number of training')
 flags.DEFINE_float('learning_rate', 0.001, 'Initial learning rate')
+flags.DEFINE_integer('batch_size', 128, 'Batch size of data fed into model')
 
 # model params
 flags.DEFINE_bool('batch_norm', False, 'Whether to apply batch normalization')

@@ -33,7 +33,7 @@ class ModelRunner:
         self.lr = flags.learning_rate
         self.write_summary = flags.write_summary
         self.rnn_dim = flags.rnn_dim
-        self.dropout = flags.dropour_rate
+        self.dropout = flags.dropout
         self.batch_size = flags.batch_size
 
         logging.get_absl_logger().addHandler(logging_base.StreamHandler(sys.path))
@@ -123,11 +123,13 @@ class ModelRunner:
         epoch_loss = []
         epoch_predictions = []
         epoch_labels = []
-        for input_x, label in dataset.next_batch(self.batch_size):
-            loss, prediction = self.model_wrapper.run_batch(input_x,
+        total_batch = dataset.num_examples // self.batch_size
+        for _ in range(total_batch):
+            input_x, label = dataset.next_batch(self.batch_size)
+            loss, prediction = self.model_wrapper.run_batch((input_x, label),
                                                             lr,
                                                             phase=phase)
-            epoch_loss.extend(loss)
+            epoch_loss.append(loss)
             epoch_predictions.extend(prediction)
             epoch_labels.extend(label)
 
@@ -147,7 +149,7 @@ class ModelRunner:
                                    self.model_wrapper.__class__.__name__,
                                    folder_name,
                                    current_time)
-        os.mkdir(folder_path)
+        os.makedirs(folder_path)
         model_path = os.path.join(folder_path, 'saved_model')
         return folder_path, model_path
 
@@ -206,11 +208,11 @@ class ModelWrapper:
 
         summary_writer.flush()
 
-    def run_batch(self, x, lr, phase):
+    def run_batch(self, batch_data, lr, phase):
         """ Run one batch """
         if phase == RunnerPhase.TRAIN:
-            loss, prediction = self.model.train(self.sess, x, lr=lr)
+            loss, prediction = self.model.train(self.sess, batch_data, lr=lr)
         else:
-            loss, prediction = self.model.predict(self.sess, x)
+            loss, prediction = self.model.predict(self.sess, batch_data)
 
         return loss, prediction
