@@ -93,7 +93,7 @@ class ClassificationModel:
         # (batch_size, num_class)
         pred = tf.nn.softmax(self.prediction_layer(last_state), axis=1) + 1e-32
 
-        loss = tf.reduce_mean(-tf.reduce_sum(self.label * tf.log(pred)))
+        loss = tf.reduce_mean(-tf.reduce_sum(self.label * tf.log(pred), axis=1))
 
         return pred, loss
 
