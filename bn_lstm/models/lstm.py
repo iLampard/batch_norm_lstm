@@ -91,7 +91,7 @@ class ClassificationModel:
         last_state = all_states[:, -1, :]
 
         # (batch_size, num_class)
-        pred = tf.nn.softmax(self.prediction_layer(last_state))
+        pred = tf.nn.softmax(self.prediction_layer(last_state), axis=1) + 1e-32
 
         loss = tf.reduce_mean(-tf.reduce_sum(self.label * tf.log(pred)))
 
@@ -109,14 +109,13 @@ class ClassificationModel:
 
         return loss, prediction
 
-    def predict(self, sess, batch_data, lr):
+    def predict(self, sess, batch_data):
         """ Define the prediction process """
         batch_x, batch_y = batch_data
         feed_dict = {self.input_x: batch_x,
                      self.label: batch_y,
-                     self.lr: lr,
                      self.is_training: False}
 
-        _, loss, prediction = sess.run([self.opt_op, self.loss, self.pred], feed_dict=feed_dict)
+        loss, prediction = sess.run([self.loss, self.pred], feed_dict=feed_dict)
 
         return loss, prediction

@@ -14,8 +14,7 @@ python main.py
 ## Requirement
 
 ```bash
-tensorflow==1.14.0
-numpy==1.16.4
+tensorflow==1.13.1
 ```
 
 

@@ -36,7 +36,7 @@ class ModelRunner:
         self.dropout = flags.dropout
         self.batch_size = flags.batch_size
 
-        logging.get_absl_logger().addHandler(logging_base.StreamHandler(sys.path))
+        logging.get_absl_logger().addHandler(logging_base.StreamHandler())
 
         return
 
@@ -62,7 +62,7 @@ class ModelRunner:
               auto_save=True):
         """ Run the training """
         folder_path, model_path = self.make_dir()
-        logging.get_absl_handler().use_absl_log_file('log', folder_path)
+        logging.get_absl_handler().use_absl_log_file('logs', folder_path)
         logging.info('Start training with max epochs {}'.format(max_epochs))
         logging.info('Model and logs saved in {}'.format(folder_path))
         logging.info('Number of trainable parameters - {}'.format(self.num_params()))
@@ -130,8 +130,10 @@ class ModelRunner:
                                                             lr,
                                                             phase=phase)
             epoch_loss.append(loss)
-            epoch_predictions.extend(prediction)
-            epoch_labels.extend(label)
+            prediction_ = np.argmax(prediction, axis=1)
+            label_ = np.argmax(label, axis=1)
+            epoch_predictions.extend(prediction_)
+            epoch_labels.extend(label_)
 
         return epoch_loss, epoch_predictions, epoch_labels
 
