@@ -22,8 +22,8 @@ class LSTM(layers.Layer):
         # Get the batch size from inputs
         self.batch_size = tf.shape(inputs)[0]
 
-        self.init_hidden_state = tf.zeros(dtype=tf.float32, shape=[self.batch_size, self.hidden_dim])
-        self.init_cell_state = tf.zeros(dtype=tf.float32, shape=[self.batch_size, self.hidden_dim])
+        self.init_hidden_state = tf.random_normal([self.batch_size, self.hidden_dim])
+        self.init_cell_state = tf.random_normal([self.batch_size, self.hidden_dim])
 
         # (batch_size, num_steps, input_dim)
         inputs = tf.expand_dims(inputs, axis=-1)
@@ -55,8 +55,8 @@ class LSTM(layers.Layer):
                                                       num_or_size_splits=4)
 
         # (batch_size, hidden_dim)
-        cell_state = tf.nn.sigmoid(forget_) * cell_state + tf.nn.sigmoid(input_) * cell_bar
-        hidden_state = tf.nn.sigmoid(output_) * cell_state
+        cell_state = tf.nn.sigmoid(forget_) * cell_state + tf.nn.sigmoid(input_) * tf.nn.tanh(cell_bar)
+        hidden_state = tf.nn.sigmoid(output_) * tf.nn.tanh(cell_state)
 
         return (hidden_state, cell_state)
 
@@ -93,7 +93,7 @@ class ClassificationModel:
         # (batch_size, num_class)
         pred = tf.nn.softmax(self.prediction_layer(last_state), axis=1) + 1e-32
 
-        loss = tf.reduce_mean(-tf.reduce_sum(self.label * tf.log(pred), axis=1))
+        loss = -tf.reduce_mean(tf.reduce_sum(self.label * tf.log(pred), axis=1))
 
         return pred, loss
 
