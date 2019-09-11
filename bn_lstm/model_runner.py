@@ -135,7 +135,7 @@ class ModelRunner:
             epoch_predictions.extend(prediction_)
             epoch_labels.extend(label_)
 
-        return epoch_loss, epoch_predictions, epoch_labels
+        return np.array(epoch_loss), np.array(epoch_predictions), np.array(epoch_labels)
 
     def make_dir(self):
         """ Initialize the directory to save models and logs """

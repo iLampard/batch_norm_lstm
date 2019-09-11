@@ -5,7 +5,11 @@ from tensorflow.keras import layers
 
 
 class LSTM(layers.Layer):
-    def __init__(self, hidden_dim, apply_bn=False):
+    def __init__(self,
+                 hidden_dim,
+                 apply_bn=False,
+                 is_training=False,
+                 decay=0.9):
         """
             Initialize the LSTM layer
             Build the network given the inputs_shape passed
@@ -15,17 +19,47 @@ class LSTM(layers.Layer):
         super(LSTM, self).__init__()
         self.hidden_dim = hidden_dim
         self.apply_bn = apply_bn
+        self.is_training = is_training
+        self.decay = decay
+        self.idx_step = 0
         self.layer_fc = layers.Dense(self.hidden_dim)
+
+    def batch_norm(self, inputs, idx_step, scope, offset=0, scale=1, variance_epsilon=1e-5):
+        with tf.variable_scope(scope):
+            input_dim = inputs.get_shape().as_list()[-1]
+            # Initialize the population stats for all time steps
+            self.pop_mean = tf.get_variable(name='pop_mean',
+                                            shape=[self.num_steps, input_dim],
+                                            initializer=tf.zeros_initializer())
+
+            self.pop_var = tf.get_variable(name='pop_var',
+                                           shape=[self.num_steps, input_dim],
+                                           initializer=tf.ones_initializer())
+            pop_mean = self.pop_mean[idx_step]
+            pop_var = self.pop_var[idx_step]
+            batch_mean, batch_var = tf.nn.moments(inputs, [0])
+            if self.is_training:
+                pop_mean.assign(pop_mean * self.decay + batch_mean * (1 - self.decay))
+                pop_var.assign(pop_var * self.decay + batch_var * (1 - self.decay))
+
+            return tf.nn.batch_normalization(inputs,
+                                             pop_mean,
+                                             pop_var,
+                                             offset,
+                                             scale,
+                                             variance_epsilon)
 
     def call(self, inputs, **kwargs):
         """ Return the hidden states for all time steps """
         # Get the batch size from inputs
+        # self.batch_size, self.num_steps = tf.shape(inputs)[0], tf.shape(inputs)[1]
         self.batch_size = tf.shape(inputs)[0]
+        self.num_steps = inputs.get_shape().as_list()[1]
 
         self.init_hidden_state = tf.random_normal([self.batch_size, self.hidden_dim])
         self.init_cell_state = tf.random_normal([self.batch_size, self.hidden_dim])
 
-        # (batch_size, num_steps, input_dim)
+        # Initialize the input - (batch_size, num_steps, input_dim)
         inputs = tf.expand_dims(inputs, axis=-1)
 
         # (num_steps, batch_size, input_dim)
@@ -34,7 +68,9 @@ class LSTM(layers.Layer):
         # use scan to run over all time steps
         state_tuple = tf.scan(self.one_step,
                               elems=inputs_,
-                              initializer=(self.init_hidden_state, self.init_cell_state))
+                              initializer=(self.init_hidden_state,
+                                           self.init_cell_state,
+                                           0))
 
         # (batch_size, num_steps, hidden_dim)
         all_hidden_state = tf.transpose(state_tuple[0], perm=[1, 0, 2])
@@ -42,10 +78,13 @@ class LSTM(layers.Layer):
 
     def one_step(self, prev_state_tuple, current_input):
         """ Move along the time axis by one step  """
-        hidden_state, cell_state = prev_state_tuple
+        hidden_state, cell_state, idx_step = prev_state_tuple
 
         # (batch_size, hidden_dim + input_dim)
         concat_input = tf.concat([hidden_state, current_input], axis=-1)
+
+        if self.apply_bn:
+            concat_input = self.batch_norm(concat_input, idx_step, 'lstm_input')
 
         # (batch_size * 4, hidden_dim + input_dim)
         concat_input_tiled = tf.tile(concat_input, [4, 1])
@@ -56,26 +95,29 @@ class LSTM(layers.Layer):
 
         # (batch_size, hidden_dim)
         cell_state = tf.nn.sigmoid(forget_) * cell_state + tf.nn.sigmoid(input_) * tf.nn.tanh(cell_bar)
+        if self.apply_bn:
+            cell_state = self.batch_norm(cell_state, idx_step, 'lstm_cell_state')
         hidden_state = tf.nn.sigmoid(output_) * tf.nn.tanh(cell_state)
 
-        return (hidden_state, cell_state)
+        return (hidden_state, cell_state, idx_step + 1)
 
 
 class ClassificationModel:
-    def __init__(self, hidden_dim, num_class):
+    def __init__(self, hidden_dim, input_x_dim, num_class, apply_bn):
         self.hidden_dim = hidden_dim
         self.num_class = num_class
-        return
+        self.apply_bn = apply_bn
+        self.input_x_dim = input_x_dim
 
     def build(self):
         """ Build up the model  """
 
-        self.input_x = tf.placeholder(tf.float32, shape=[None, None])
+        self.input_x = tf.placeholder(tf.float32, shape=[None, self.input_x_dim])
         self.label = tf.placeholder(tf.float32, shape=[None, self.num_class])
         self.lr = tf.placeholder(tf.float32)
         self.is_training = tf.placeholder(tf.bool)
 
-        self.lstm_layer = LSTM(self.hidden_dim)
+        self.lstm_layer = LSTM(self.hidden_dim, self.apply_bn)
         self.prediction_layer = layers.Dense(self.num_class)
 
         self.pred, self.loss = self.forward(self.input_x)
