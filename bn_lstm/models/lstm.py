@@ -117,7 +117,7 @@ class ClassificationModel:
         self.lr = tf.placeholder(tf.float32)
         self.is_training = tf.placeholder(tf.bool)
 
-        self.lstm_layer = LSTM(self.hidden_dim, self.apply_bn)
+        self.lstm_layer = LSTM(self.hidden_dim, self.apply_bn, self.is_training)
         self.prediction_layer = layers.Dense(self.num_class)
 
         self.pred, self.loss = self.forward(self.input_x)
