@@ -24,7 +24,7 @@ class LSTM(layers.Layer):
         self.idx_step = 0
         self.layer_fc = layers.Dense(self.hidden_dim)
 
-    def batch_norm(self, inputs, idx_step, scope, offset=0, scale=1, variance_epsilon=1e-5):
+    def batch_norm(self, inputs, idx_step, scope, offset=0, scale=0.1, variance_epsilon=1e-5):
         with tf.variable_scope(scope):
             input_dim = inputs.get_shape().as_list()[-1]
             # Initialize the population stats for all time steps
@@ -38,16 +38,28 @@ class LSTM(layers.Layer):
             pop_mean = self.pop_mean[idx_step]
             pop_var = self.pop_var[idx_step]
             batch_mean, batch_var = tf.nn.moments(inputs, [0])
-            if self.is_training:
-                pop_mean.assign(pop_mean * self.decay + batch_mean * (1 - self.decay))
-                pop_var.assign(pop_var * self.decay + batch_var * (1 - self.decay))
 
-            return tf.nn.batch_normalization(inputs,
-                                             pop_mean,
-                                             pop_var,
-                                             offset,
-                                             scale,
-                                             variance_epsilon)
+            def batch_statistics():
+                pop_mean_new = pop_mean * self.decay + batch_mean * (1 - self.decay)
+                pop_var_new = pop_var * self.decay + batch_var * (1 - self.decay)
+                with tf.control_dependencies([pop_mean.assign(pop_mean_new),
+                                              pop_var.assign(pop_var_new)]):
+                    return tf.nn.batch_normalization(inputs,
+                                                     batch_mean,
+                                                     batch_var,
+                                                     offset,
+                                                     scale,
+                                                     variance_epsilon)
+
+            def population_statistics():
+                return tf.nn.batch_normalization(inputs,
+                                                 pop_mean,
+                                                 pop_var,
+                                                 offset,
+                                                 scale,
+                                                 variance_epsilon)
+
+            return tf.cond(self.is_training, batch_statistics, population_statistics)
 
     def call(self, inputs, **kwargs):
         """ Return the hidden states for all time steps """
@@ -122,7 +134,7 @@ class ClassificationModel:
 
         self.pred, self.loss = self.forward(self.input_x)
 
-        self.opt_op = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
+        self.opt_op = tf.train.RMSPropOptimizer(self.lr).minimize(self.loss)
 
     def forward(self, input_x):
         """ Make predictions and compute loss  """

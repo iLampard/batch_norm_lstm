@@ -116,7 +116,8 @@ class ModelRunner:
         logging.info('Accuracy {}'.format(accuracy))
 
         logging.info('Evaluation finished')
-        return
+
+        return {'accuracy': accuracy}
 
     def run_one_epoch(self, dataset, phase, lr):
         """ Run one complete epoch """
@@ -203,7 +204,7 @@ class ModelWrapper:
         if summary_writer is None:
             return
 
-        for key, value in kv_pairs.item():
+        for key, value in kv_pairs.items():
             metrics = tf.Summary()
             metrics.value.add(tag=key, simple_value=value)
             summary_writer.add_summary(metrics, epoch_num)
