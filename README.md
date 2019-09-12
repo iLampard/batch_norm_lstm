@@ -16,18 +16,18 @@ training and evalution.
 Suppose we want to run 50 epochs and use Tensorboard to 
 visualize the process
 
-```python
+```bash
 cd bn_lstm
 python main.py --write_summary True --max_epoch 50
 ```
 
 To check the description of all flags
-```python
+```bash
 python main.py -helpful
 ```
 
 To open tensorboard
-```python
+```bash
 tensorboard --logdir=path
 ```
 
