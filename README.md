@@ -7,7 +7,7 @@ In an attempt to learn Tensorflow, I have implemented
 - A batch normalization operation for each time step has been implemented based on 
 the [discussion](https://github.com/OlavHN/bnlstm/issues/7).
 - For the purpose of practising Tensorflow, I have coded 
-the LSTM structure by myself instead of using build-in layer.
+the LSTM structure by myself instead of using the build-in layer.
 - A *ModelRunner* class is added to control the pipeline of model 
 training and evalution.
 
