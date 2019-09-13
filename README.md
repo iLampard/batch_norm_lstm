@@ -6,10 +6,8 @@ In an attempt to learn Tensorflow, I have implemented
  for the pixel-by-pixel MNIST classification using Tensorflow 1.13.
 - A batch normalization operation for each time step has been implemented based on 
 the [discussion](https://github.com/OlavHN/bnlstm/issues/7).
-- For the purpose of practising Tensorflow, I have coded 
-the LSTM structure by myself instead of using the build-in layer.
 - A *ModelRunner* class is added to control the pipeline of model 
-training and evalution.
+training and evaluation.
 
 ## How to run
 
@@ -31,8 +29,8 @@ To open tensorboard
 tensorboard --logdir=path
 ```
 
-where *path* can be found in the log where it shows the place model saved, e.g. 
-*logs/ModelWrapper/lr-0.001_dim-32/20190912-230850/saved_model*.
+where *path* can be found in the log which shows the relative dir where the model is saved, e.g. 
+*logs/ModelWrapper/lr-0.001_dim-32/20190912-230850/saved_model/tfb_dir*.
 
 ## Requirement
 
