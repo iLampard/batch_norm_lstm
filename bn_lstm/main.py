@@ -1,4 +1,4 @@
-""" A scipt to run the model """
+""" A script to run the model """
 
 import os
 import sys
@@ -23,7 +23,7 @@ flags.DEFINE_integer('batch_size', 128, 'Batch size of data fed into model')
 
 # model params
 flags.DEFINE_bool('batch_norm', True, 'Whether to apply batch normalization')
-flags.DEFINE_integer('rnn_dim', 100, 'Dimension of LSTM cell')
+flags.DEFINE_integer('rnn_dim', 32, 'Dimension of LSTM cell')
 flags.DEFINE_integer('input_x_dim', 784, 'Dimension of input x (num time steps in LSTM)')
 flags.DEFINE_float('dropout', 0.0, 'Dropout rate of the model')
 flags.DEFINE_string('save_dir', 'logs', 'Root path to save logs and models')
