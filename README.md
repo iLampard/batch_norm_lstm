@@ -38,13 +38,12 @@ where *path* can be found in the log which shows the relative dir where the mode
 
 The comparison of the accuracy on test set is shown in below graph
 
-s
-<img src="http://github.com/iLampard/batch_norm_lstm/figure/acc.png">
+<img src="https://github.com/iLampard/batch_norm_lstm/tree/master/figures/acc.png" />
 
 The red curve corresponds to the acc of the batch normalized model.
 
 
-<img src="http://github.com/iLampard/batch_norm_lstm/figures/loss.png">
+<img src="https://github.com/iLampard/batch_norm_lstm/tree/master/figures/loss.png" />
 
 The orange curve corresponds to the training loss of the batch normalized model.
 ```bash
